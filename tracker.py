@@ -226,6 +226,79 @@ def delete_recurring(index: int) -> None:
         writer.writerows(rows)
 
 
+WISHLIST_PATH = os.path.join(os.path.dirname(__file__), "wishlist.csv")
+WISHLIST_COLUMNS = ["name", "type", "priority", "price", "note", "link", "purchased", "added_date"]
+
+VALID_WISH_TYPES = ["utility", "games", "clothes"]
+VALID_WISH_PRIORITIES = ["urgent", "really want", "want", "eventually"]
+
+
+def load_wishlist() -> list[dict]:
+    """Return all wishlist items, or an empty list if none saved yet."""
+    if not os.path.exists(WISHLIST_PATH):
+        return []
+    with open(WISHLIST_PATH, "r", newline="") as f:
+        rows = list(csv.DictReader(f))
+    for row in rows:
+        row.setdefault("link", "")
+        row.setdefault("purchased", "0")
+        row.setdefault("added_date", "")
+    return rows
+
+
+def add_wish(name: str, wish_type: str, priority: str, price: float, note: str = "", link: str = "") -> dict:
+    """Append a wishlist item to wishlist.csv."""
+    if price < 0:
+        raise ValueError("Price cannot be negative.")
+    wish_type = wish_type.lower().strip()
+    if wish_type not in VALID_WISH_TYPES:
+        raise ValueError(f"'{wish_type}' is not a valid type.")
+    priority = priority.lower().strip()
+    if priority not in VALID_WISH_PRIORITIES:
+        raise ValueError(f"'{priority}' is not a valid priority.")
+    row = {
+        "name": name.strip(),
+        "type": wish_type,
+        "priority": priority,
+        "price": f"{price:.2f}",
+        "note": note.strip(),
+        "link": link.strip(),
+        "purchased": "0",
+        "added_date": date.today().isoformat(),
+    }
+    file_exists = os.path.exists(WISHLIST_PATH)
+    with open(WISHLIST_PATH, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=WISHLIST_COLUMNS)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+    return row
+
+
+def toggle_wish_purchased(index: int) -> None:
+    """Flip the purchased flag on a wishlist item."""
+    items = load_wishlist()
+    if index < 0 or index >= len(items):
+        raise IndexError(f"No wishlist item at index {index}.")
+    items[index]["purchased"] = "0" if items[index]["purchased"] == "1" else "1"
+    with open(WISHLIST_PATH, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=WISHLIST_COLUMNS)
+        writer.writeheader()
+        writer.writerows(items)
+
+
+def delete_wish(index: int) -> None:
+    """Remove a wishlist item by its list position."""
+    items = load_wishlist()
+    if index < 0 or index >= len(items):
+        raise IndexError(f"No wishlist item at index {index}.")
+    items.pop(index)
+    with open(WISHLIST_PATH, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=WISHLIST_COLUMNS)
+        writer.writeheader()
+        writer.writerows(items)
+
+
 def summarise_by_category(expenses: list[dict]) -> dict[str, float]:
     """
     Given a list of expense dicts, return total spending per category.

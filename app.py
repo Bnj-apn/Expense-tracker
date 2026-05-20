@@ -21,8 +21,14 @@ from tracker import (
     load_recurring,
     add_recurring,
     delete_recurring,
+    load_wishlist,
+    add_wish,
+    delete_wish,
+    toggle_wish_purchased,
     VALID_CATEGORIES,
     VALID_ORIGINS,
+    VALID_WISH_TYPES,
+    VALID_WISH_PRIORITIES,
 )
 
 app = Flask(__name__)
@@ -236,6 +242,83 @@ def delete_recurring_route(index):
     except IndexError as e:
         flash(f"Error: {e}", "error")
     return redirect(url_for("dashboard"))
+
+
+def _age_label(added_date_str: str) -> str:
+    """Return a human-readable age string, or '' if less than a week old."""
+    if not added_date_str:
+        return ""
+    try:
+        added = date.fromisoformat(added_date_str)
+    except ValueError:
+        return ""
+    days = (date.today() - added).days
+    if days < 7:
+        return ""
+    if days < 30:
+        weeks = days // 7
+        return f"{weeks} week{'s' if weeks > 1 else ''} in"
+    months = days // 30
+    return f"{months} month{'s' if months > 1 else ''} in"
+
+
+@app.route("/wishlist")
+def wishlist():
+    """Wishlist page: items grouped by type."""
+    items = load_wishlist()
+    for i, item in enumerate(items):
+        item["index"] = i
+        item["age_label"] = _age_label(item.get("added_date", ""))
+    total = sum(float(item["price"]) for item in items)
+    by_type = {t: [item for item in items if item["type"] == t] for t in VALID_WISH_TYPES}
+    type_totals = {t: sum(float(item["price"]) for item in grp) for t, grp in by_type.items()}
+    return render_template(
+        "wishlist.html",
+        items=items,
+        total=total,
+        by_type=by_type,
+        type_totals=type_totals,
+        wish_types=VALID_WISH_TYPES,
+        wish_priorities=VALID_WISH_PRIORITIES,
+    )
+
+
+@app.route("/add_wish", methods=["POST"])
+def add_wish_route():
+    """Add a new wishlist item."""
+    try:
+        name = request.form["wish_name"]
+        wish_type = request.form["wish_type"]
+        priority = request.form["wish_priority"]
+        price = float(request.form["wish_price"])
+        note = request.form.get("wish_note", "")
+        link = request.form.get("wish_link", "")
+        add_wish(name, wish_type, priority, price, note, link)
+        flash(f"Added '{name}' to your wishlist.", "success")
+    except (ValueError, KeyError) as e:
+        flash(f"Error: {e}", "error")
+    return redirect(url_for("wishlist"))
+
+
+@app.route("/toggle_wish/<int:index>", methods=["POST"])
+def toggle_wish_route(index):
+    """Toggle purchased status of a wishlist item."""
+    try:
+        toggle_wish_purchased(index)
+    except IndexError as e:
+        flash(f"Error: {e}", "error")
+    return redirect(url_for("wishlist"))
+
+
+@app.route("/delete_wish/<int:index>", methods=["POST"])
+def delete_wish_route(index):
+    """Remove a wishlist item by index."""
+    try:
+        delete_wish(index)
+        flash("Item removed from wishlist.", "success")
+    except IndexError as e:
+        flash(f"Error: {e}", "error")
+    return redirect(url_for("wishlist"))
 
 
 if __name__ == "__main__":

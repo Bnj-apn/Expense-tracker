@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Wishlist{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Wishlist</h1>
+  <p>Things you want to buy — track what it'll cost before you commit.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;">
+
+  <!-- Left: Add item form -->
+  <div class="card">
+    <div class="card-title">New Item</div>
+    <form action="{{ url_for('add_wish_route') }}" method="POST">
+
+      <div class="form-group">
+        <label for="wish_name">Item Name</label>
+        <input type="text" id="wish_name" name="wish_name" placeholder="e.g. Nike Air Max" maxlength="80" required autofocus />
+      </div>
+
+      <div class="form-group">
+        <label for="wish_type">Type</label>
+        <select id="wish_type" name="wish_type" required>
+          {% for t in wish_types %}
+            <option value="{{ t }}">{{ t|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="wish_priority">Need</label>
+        <select id="wish_priority" name="wish_priority" required>
+          {% for p in wish_priorities %}
+            <option value="{{ p }}">{{ p|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="wish_price">Price (R$)</label>
+        <input type="number" id="wish_price" name="wish_price" step="0.01" min="0" placeholder="0.00" required />
+      </div>
+
+      <div class="form-group">
+        <label for="wish_note">Note <span style="opacity:.4">(optional)</span></label>
+        <input type="text" id="wish_note" name="wish_note" placeholder="e.g. wait for sale" maxlength="80" />
+      </div>
+
+      <div class="form-group">
+        <label for="wish_link">Link <span style="opacity:.4">(optional)</span></label>
+        <input type="url" id="wish_link" name="wish_link" placeholder="https://..." maxlength="500" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:6px;">
+        + Add to Wishlist
+      </button>
+    </form>
+  </div>
+
+  <!-- Right: 3 type boxes -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- Summary strip -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="card" style="padding: 20px;">
+        <div class="card-title">Total Items</div>
+        <div style="font-family: var(--font-display); font-size: 28px; color: var(--accent);">{{ items|length }}</div>
+      </div>
+      <div class="card" style="padding: 20px; border-left: 3px solid var(--accent);">
+        <div class="card-title">Total Cost</div>
+        <div style="font-family: var(--font-mono); font-size: 22px; color: var(--accent);">R${{ "%.2f"|format(total) }}</div>
+      </div>
+    </div>
+
+    {% set type_meta = {
+      'utility': {'color': '#4caf50', 'label': 'Utility'},
+      'games':   {'color': '#9c7ee0', 'label': 'Games'},
+      'clothes': {'color': '#f0a050', 'label': 'Clothes'}
+    } %}
+
+    {% for t in wish_types %}
+    {% set meta = type_meta[t] %}
+    {% set group = by_type[t] %}
+    <div class="card" style="border-left: 3px solid {{ meta.color }};">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: {% if group %}20px{% else %}0{% endif %};">
+        <div class="card-title" style="color: {{ meta.color }}; margin-bottom:0;">{{ meta.label }}</div>
+        <span style="font-family: var(--font-mono); font-size: 15px; color: {{ meta.color }};">
+          R${{ "%.2f"|format(type_totals[t]) }}
+        </span>
+      </div>
+
+      {% if group %}
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Item</th>
+              <th>Need</th>
+              <th>Note</th>
+              <th style="text-align:right">Price</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in group %}
+            {% set bought = item.purchased == "1" %}
+            {% set priority_color = {
+              'urgent':     '#EF4444',
+              'really want':'#F59E0B',
+              'want':       '#5aabde',
+              'eventually': '#6B7280'
+            }[item.priority] %}
+            <tr style="{{ 'opacity: 0.45;' if bought }}">
+              <!-- Purchased toggle -->
+              <td style="padding-right: 0; width: 32px;">
+                <form action="{{ url_for('toggle_wish_route', index=item.index) }}" method="POST">
+                  <button type="submit" title="{{ 'Mark as not purchased' if bought else 'Mark as purchased' }}" style="
+                    background: none;
+                    border: 1px solid {{ meta.color if bought else 'var(--border)' }};
+                    color: {{ meta.color if bought else 'var(--muted)' }};
+                    cursor: pointer;
+                    border-radius: 4px;
+                    padding: 2px 6px;
+                    font-size: 12px;
+                    transition: color 0.15s, border-color 0.15s;
+                  ">✓</button>
+                </form>
+              </td>
+              <td style="font-weight: 500; color: var(--text); {{ 'text-decoration: line-through; color: var(--muted);' if bought }}">
+                {% if item.link and not bought %}
+                  <a href="{{ item.link }}" target="_blank" rel="noopener" style="color: var(--text); text-decoration: none; border-bottom: 1px solid {{ meta.color }}55;"
+                     onmouseover="this.style.borderBottomColor='{{ meta.color }}'"
+                     onmouseout="this.style.borderBottomColor='{{ meta.color }}55'">
+                    {{ item.name }}
+                  </a>
+                {% else %}
+                  {{ item.name }}
+                {% endif %}
+                {% if item.age_label %}
+                  <span style="display: block; font-size: 11px; font-style: italic; font-weight: 400; color: var(--muted); margin-top: 2px;">{{ item.age_label }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge" style="background: {{ priority_color }}22; color: {{ priority_color }};">
+                  {{ item.priority }}
+                </span>
+              </td>
+              <td class="note-cell">{{ item.note or '—' }}</td>
+              <td style="text-align:right">
+                <span class="amount" style="{{ 'text-decoration: line-through; color: var(--muted);' if bought }}">R${{ "%.2f"|format(item.price|float) }}</span>
+              </td>
+              <td style="text-align:right; padding-left: 0;">
+                <form action="{{ url_for('delete_wish_route', index=item.index) }}" method="POST"
+                      onsubmit="return confirm('Remove this item from your wishlist?')">
+                  <button type="submit" title="Remove" style="
+                    background: none;
+                    border: 1px solid transparent;
+                    color: var(--muted);
+                    cursor: pointer;
+                    border-radius: 6px;
+                    padding: 4px 8px;
+                    font-size: 14px;
+                    transition: color 0.15s, border-color 0.15s;
+                  "
+                  onmouseover="this.style.color='#EF4444'; this.style.borderColor='rgba(239,68,68,0.3)'"
+                  onmouseout="this.style.color='var(--muted)'; this.style.borderColor='transparent'"
+                  >✕</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div style="color: var(--muted); font-size: 13px; padding: 8px 0;">No {{ meta.label|lower }} items yet.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+{% endblock %}
