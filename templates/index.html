@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p>{{ today[:7] }} — your money at a glance.</p>
+</div>
+
+<!-- ── Top section: Account Balance + Credit Card Expenses + Monthly Recurring ─── -->
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 28px; align-items: start;">
+
+  <div class="card" style="padding: 32px; border-left: 3px solid #e0e0e0;">
+    <div class="card-title" style="color: #e0e0e0;">Account Balance</div>
+    {% if income == 0 %}
+      <div style="font-family: var(--font-mono); font-size: 28px; color: var(--muted);">R$0.00</div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 5px;">Add money below ↓</div>
+    {% else %}
+      {% set remaining_color = "#34D399" if remaining >= 0 else "#EF4444" %}
+      <div style="font-family: var(--font-mono); font-size: 28px; color: {{ remaining_color }};">
+        R${{ "%.2f"|format(remaining) }}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Credit Card Expenses block -->
+  <div class="card" style="border-left: 3px solid #d4aa30; padding: 32px;">
+    <div class="card-title" style="color: #d4aa30;">Credit Card Expenses</div>
+    <div style="font-family: var(--font-mono); font-size: 28px; color: #d4aa30;">
+      R${{ "%.2f"|format(spent_credit) }}
+    </div>
+  </div>
+
+  <!-- Monthly Recurring block -->
+  <div class="card" style="border-left: 3px solid #F59E0B; padding: 32px;">
+    <div class="card-title" style="color: #F59E0B;">Monthly Recurring</div>
+    <div style="font-family: var(--font-mono); font-size: 28px; color: #F59E0B;">
+      R${{ "%.2f"|format(recurring_debit_total + recurring_credit_total) }}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Main grid ────────────────────────────────────────────── -->
+<div style="display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;">
+
+  <!-- Left column -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- Log expense form -->
+    <div class="card">
+      <div class="card-title">New Expense</div>
+      <form action="{{ url_for('add') }}" method="POST">
+        <div class="form-group">
+          <label for="amount">Amount (R$)</label>
+          <input type="number" id="amount" name="amount" step="0.01" min="0.01" placeholder="0.00" required autofocus />
+        </div>
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" name="category" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="origin">Origin</label>
+          <select id="origin" name="origin" required>
+            <option value="debit">Debit Account</option>
+            <option value="credit">Credit Card</option>
+            <option value="recurring">Monthly Recurring</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="note">Note <span style="opacity:.4">(optional)</span></label>
+          <input type="text" id="note" name="note" placeholder="e.g. energy drink" maxlength="80" />
+        </div>
+        <div class="form-group">
+          <label for="expense_date">Date</label>
+          <input type="date" id="expense_date" name="expense_date" value="{{ today }}" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top: 6px;">
+          + Log Expense
+        </button>
+      </form>
+    </div>
+
+    <!-- Add money form -->
+    <div class="card">
+      <div class="card-title">Add Money</div>
+      <form action="{{ url_for('set_income') }}" method="POST">
+        <input type="hidden" name="income_year"  value="{{ current_year }}" />
+        <input type="hidden" name="income_month" value="{{ current_month }}" />
+        <div class="form-group">
+          <label for="income_amount">Amount (R$)</label>
+          <input
+            type="number"
+            id="income_amount"
+            name="income_amount"
+            step="0.01"
+            min="0.01"
+            placeholder="0.00"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-ghost" style="width:100%; justify-content:center;">
+          + Add to Balance
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Right column: Recent Expenses -->
+  <div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <div class="card-title" style="margin-bottom:0">Recent Expenses</div>
+        <a href="{{ url_for('history') }}" class="btn btn-ghost" style="padding: 6px 14px; font-size:12px;">
+          View all →
+        </a>
+      </div>
+
+      {% if recent %}
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Origin</th>
+              <th>Note</th>
+              <th style="text-align:right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in recent %}
+            <tr>
+              <td style="font-family: var(--font-mono); font-size:12px; color: var(--muted);">{{ e.date }}</td>
+              <td>
+                <span class="badge" style="background: {{ category_colors.get(e.category, '#94A3B8') }}22; color: {{ category_colors.get(e.category, '#94A3B8') }};">
+                  {{ e.category }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" style="
+                  {% if e.origin == 'credit' %}
+                    background: rgba(212,170,48,0.12); color: #d4aa30;
+                  {% else %}
+                    background: rgba(224,224,224,0.08); color: #e0e0e0;
+                  {% endif %}
+                ">
+                  {{ "Credit Card" if e.origin == "credit" else "Debit" }}
+                </span>
+              </td>
+              <td class="note-cell">{{ e.note or '—' }}</td>
+              <td style="text-align:right"><span class="amount">R${{ "%.2f"|format(e.amount|float) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <span class="emoji">🧾</span>
+          No expenses yet. Log your first one!
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

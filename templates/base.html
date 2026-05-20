@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Benja's Cash Tracker — {% block title %}Expense Tracker{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────── */
+    :root {
+      --bg:          #0E0F11;
+      --sidebar:     #13151A;
+      --surface:     #1A1D24;
+      --border:      #272B35;
+      --text:        #E8EAF0;
+      --muted:       #6B7280;
+      --accent:      #F59E0B;
+      --accent-dim:  #78490A;
+      --danger:      #EF4444;
+      --success:     #10B981;
+
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'DM Mono', 'Courier New', monospace;
+
+      --sidebar-w: 220px;
+      --radius: 10px;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      font-weight: 300;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 10;
+    }
+
+    .sidebar-logo {
+      padding: 0 24px 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo .wordmark {
+      font-family: var(--font-display);
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .sidebar-logo .tagline {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-top: 6px;
+    }
+
+    nav {
+      padding: 24px 0;
+      flex: 1;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      border-left: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    nav a:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+
+    nav a.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: rgba(245,158,11,0.06);
+    }
+
+    nav a .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 0 24px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.5;
+    }
+
+    /* ── Main content ──────────────────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 40px 48px;
+      min-width: 0;
+    }
+
+    .page-header {
+      margin-bottom: 36px;
+    }
+
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+    }
+
+    .page-header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── Flash messages ────────────────────────────────────────── */
+    .flash-list {
+      list-style: none;
+      margin-bottom: 24px;
+    }
+
+    .flash {
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      border: 1px solid;
+    }
+
+    .flash.success {
+      background: rgba(16,185,129,0.08);
+      border-color: rgba(16,185,129,0.25);
+      color: #34D399;
+    }
+
+    .flash.error {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.25);
+      color: #F87171;
+    }
+
+    /* ── Category badge ────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: lowercase;
+    }
+
+    /* ── Amount display ────────────────────────────────────────── */
+    .amount {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      transition: opacity 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0E0F11;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Form elements ─────────────────────────────────────────── */
+    .form-group { margin-bottom: 18px; }
+
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    select option { background: var(--surface); }
+
+    /* ── Table ─────────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-align: left;
+      padding: 0 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(39,43,53,0.6);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .note-cell {
+      color: #7EC8C8;
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 12px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">Benja's</div>
+      <div class="tagline">Cash Tracker</div>
+    </div>
+
+    <nav>
+      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">
+        <span class="nav-icon">◈</span> Dashboard
+      </a>
+      <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">
+        <span class="nav-icon">≡</span> History
+      </a>
+      <a href="{{ url_for('report') }}" class="{{ 'active' if request.endpoint == 'report' }}">
+        <span class="nav-icon">◎</span> Report
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      expenses.csv
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Flash messages (success / error banners) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash-list">
+          {% for category, message in messages %}
+            <li class="flash {{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Expense History</h1>
+  <p>All recorded expenses, newest first. Click ✕ to remove one.</p>
+</div>
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+    <div class="card-title" style="margin-bottom:0">
+      {{ expenses|length }} expense{{ 's' if expenses|length != 1 }}
+    </div>
+  </div>
+
+  {% if expenses %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Origin</th>
+          <th>Note</th>
+          <th style="text-align:right">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td style="font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space:nowrap;">
+            {{ e.date }}
+          </td>
+          <td>
+            <span class="badge" style="background: {{ category_colors.get(e.category, '#94A3B8') }}22; color: {{ category_colors.get(e.category, '#94A3B8') }};">
+              {{ e.category }}
+            </span>
+          </td>
+          <td>
+            <span class="badge" style="
+              {% if e.origin == 'credit' %}
+                background: rgba(212,170,48,0.12); color: #d4aa30;
+              {% else %}
+                background: rgba(224,224,224,0.08); color: #e0e0e0;
+              {% endif %}
+            ">
+              {{ "Credit Card" if e.origin == "credit" else "Debit" }}
+            </span>
+          </td>
+          <td class="note-cell">{{ e.note or '—' }}</td>
+          <td style="text-align:right">
+            <span class="amount" style="{{ 'color: #d4aa30;' if e.origin == 'credit' else '' }}">
+              R${{ "%.2f"|format(e.amount|float) }}
+            </span>
+          </td>
+          <td style="text-align:right; padding-left: 0;">
+            <form action="{{ url_for('delete', index=e.csv_index) }}" method="POST"
+                  onsubmit="return confirm('Delete this expense?')">
+              <button type="submit" title="Delete" style="
+                background: none;
+                border: 1px solid transparent;
+                color: var(--muted);
+                cursor: pointer;
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 14px;
+                transition: color 0.15s, border-color 0.15s;
+              "
+              onmouseover="this.style.color='#EF4444'; this.style.borderColor='rgba(239,68,68,0.3)'"
+              onmouseout="this.style.color='var(--muted)'; this.style.borderColor='transparent'"
+              >✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <span class="emoji">🧾</span>
+      No expenses logged yet. Head to the Dashboard to add some.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
