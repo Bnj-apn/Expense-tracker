@@ -1,6 +1,7 @@
 expenses.csv
 income.csv
 recurring.csv
+wishlist.csv
 .claude/
 __pycache__/
 *.pyc

@@ -1,3 +1,2 @@
-name,type,priority,price,note,link,purchased
-Pragmata,games,really want,299.99,Switch game,,0
-Jeans dark blue,clothes,want,249.00,Bershka,https://www.bershka.com/br/jeans-baggy-c0p209138886.html?colorId=407,0
+name,type,priority,price,note,link,purchased,added_date
+Pragmata,games,really want,299.99,Switch game,,0,
