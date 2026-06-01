@@ -4,50 +4,32 @@
 {% block content %}
 <div class="page-header">
   <h1>Dashboard</h1>
-  <p>{{ today[:7] }} — your money at a glance.</p>
+  <p>{{ today[:7] }} account position</p>
 </div>
 
-<!-- ── Top section: Account Balance + Credit Card Expenses + Monthly Recurring ─── -->
-<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 28px; align-items: start;">
-
-  <div class="card" style="padding: 32px; border-left: 3px solid #e0e0e0;">
-    <div class="card-title" style="color: #e0e0e0;">Account Balance</div>
+<div class="stat-grid">
+  <div class="card stat-card is-neutral">
+    <div class="card-title">Account Balance</div>
+    {% set remaining_class = "is-positive" if remaining >= 0 else "is-negative" %}
+    <div class="stat-value {{ remaining_class }}">R${{ "%.2f"|format(remaining) }}</div>
     {% if income == 0 %}
-      <div style="font-family: var(--font-mono); font-size: 28px; color: var(--muted);">R$0.00</div>
-      <div style="font-size: 11px; color: var(--muted); margin-top: 5px;">Add money below ↓</div>
-    {% else %}
-      {% set remaining_color = "#34D399" if remaining >= 0 else "#EF4444" %}
-      <div style="font-family: var(--font-mono); font-size: 28px; color: {{ remaining_color }};">
-        R${{ "%.2f"|format(remaining) }}
-      </div>
+      <div class="muted">No starting balance recorded</div>
     {% endif %}
   </div>
 
-  <!-- Credit Card Expenses block -->
-  <div class="card" style="border-left: 3px solid #d4aa30; padding: 32px;">
-    <div class="card-title" style="color: #d4aa30;">Credit Card Expenses</div>
-    <div style="font-family: var(--font-mono); font-size: 28px; color: #d4aa30;">
-      R${{ "%.2f"|format(spent_credit) }}
-    </div>
+  <div class="card stat-card is-credit">
+    <div class="card-title">Credit Card Expenses</div>
+    <div class="stat-value is-credit">R${{ "%.2f"|format(spent_credit) }}</div>
   </div>
 
-  <!-- Monthly Recurring block -->
-  <div class="card" style="border-left: 3px solid #F59E0B; padding: 32px;">
-    <div class="card-title" style="color: #F59E0B;">Monthly Recurring</div>
-    <div style="font-family: var(--font-mono); font-size: 28px; color: #F59E0B;">
-      R${{ "%.2f"|format(recurring_debit_total + recurring_credit_total) }}
-    </div>
+  <div class="card stat-card">
+    <div class="card-title">Monthly Recurring</div>
+    <div class="stat-value is-accent">R${{ "%.2f"|format(recurring_debit_total + recurring_credit_total) }}</div>
   </div>
-
 </div>
 
-<!-- ── Main grid ────────────────────────────────────────────── -->
-<div style="display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;">
-
-  <!-- Left column -->
-  <div style="display: flex; flex-direction: column; gap: 20px;">
-
-    <!-- Log expense form -->
+<div class="dashboard-grid">
+  <div class="stack">
     <div class="card">
       <div class="card-title">New Expense</div>
       <form action="{{ url_for('add') }}" method="POST">
@@ -72,53 +54,40 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="note">Note <span style="opacity:.4">(optional)</span></label>
-          <input type="text" id="note" name="note" placeholder="e.g. energy drink" maxlength="80" />
+          <label for="note">Note <span style="opacity:.45">(optional)</span></label>
+          <input type="text" id="note" name="note" placeholder="e.g. lunch" maxlength="80" />
         </div>
         <div class="form-group">
           <label for="expense_date">Date</label>
           <input type="date" id="expense_date" name="expense_date" value="{{ today }}" />
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top: 6px;">
-          + Log Expense
+          Log Expense
         </button>
       </form>
     </div>
 
-    <!-- Add money form -->
     <div class="card">
       <div class="card-title">Add Money</div>
       <form action="{{ url_for('set_income') }}" method="POST">
-        <input type="hidden" name="income_year"  value="{{ current_year }}" />
+        <input type="hidden" name="income_year" value="{{ current_year }}" />
         <input type="hidden" name="income_month" value="{{ current_month }}" />
         <div class="form-group">
           <label for="income_amount">Amount (R$)</label>
-          <input
-            type="number"
-            id="income_amount"
-            name="income_amount"
-            step="0.01"
-            min="0.01"
-            placeholder="0.00"
-            required
-          />
+          <input type="number" id="income_amount" name="income_amount" step="0.01" min="0.01" placeholder="0.00" required />
         </div>
         <button type="submit" class="btn btn-ghost" style="width:100%; justify-content:center;">
-          + Add to Balance
+          Add to Balance
         </button>
       </form>
     </div>
-
   </div>
 
-  <!-- Right column: Recent Expenses -->
-  <div>
+  <div class="stack">
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+      <div class="section-header">
         <div class="card-title" style="margin-bottom:0">Recent Expenses</div>
-        <a href="{{ url_for('history') }}" class="btn btn-ghost" style="padding: 6px 14px; font-size:12px;">
-          View all →
-        </a>
+        <a href="{{ url_for('history') }}" class="btn btn-ghost" style="padding: 6px 12px; font-size:12px;">View all</a>
       </div>
 
       {% if recent %}
@@ -135,37 +104,49 @@
           <tbody>
             {% for e in recent %}
             <tr>
-              <td style="font-family: var(--font-mono); font-size:12px; color: var(--muted);">{{ e.date }}</td>
+              <td style="font-family: var(--font-mono); font-size:12px; color: var(--text-muted);">{{ e.date }}</td>
               <td>
-                <span class="badge" style="background: {{ category_colors.get(e.category, '#94A3B8') }}22; color: {{ category_colors.get(e.category, '#94A3B8') }};">
-                  {{ e.category }}
-                </span>
+                <span class="badge" style="color: {{ category_colors.get(e.category, '#94A3B8') }};">{{ e.category }}</span>
               </td>
               <td>
-                <span class="badge" style="
-                  {% if e.origin == 'credit' %}
-                    background: rgba(212,170,48,0.12); color: #d4aa30;
-                  {% else %}
-                    background: rgba(224,224,224,0.08); color: #e0e0e0;
-                  {% endif %}
-                ">
+                <span class="badge" style="color: {{ 'var(--credit)' if e.origin == 'credit' else 'var(--text)' }};">
                   {{ "Credit Card" if e.origin == "credit" else "Debit" }}
                 </span>
               </td>
-              <td class="note-cell">{{ e.note or '—' }}</td>
+              <td class="note-cell">{{ e.note or '-' }}</td>
               <td style="text-align:right"><span class="amount">R${{ "%.2f"|format(e.amount|float) }}</span></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       {% else %}
-        <div class="empty-state">
-          <span class="emoji">🧾</span>
-          No expenses yet. Log your first one!
-        </div>
+        <div class="empty-state">No expenses yet.</div>
       {% endif %}
     </div>
-  </div>
 
+    <div class="card past-months">
+      <div class="section-header">
+        <div class="card-title" style="margin-bottom:0">Past Months</div>
+        <span class="muted" style="margin-top:0">Last 5 months</span>
+      </div>
+      {% for m in past_months %}
+        <div class="past-month-row">
+          <div>
+            <span class="past-pill">PAST</span>
+            <span class="past-month-label">{{ m.label }}</span>
+          </div>
+          <div>
+            <div class="muted" style="margin-top:0">Spent</div>
+            <div class="mono-value">R${{ "%.2f"|format(m.total_spent) }}</div>
+          </div>
+          <div>
+            <div class="muted" style="margin-top:0">Balance</div>
+            <div class="mono-value" style="color: {{ 'var(--success)' if m.balance >= 0 else 'var(--danger)' }};">R${{ "%.2f"|format(m.balance) }}</div>
+          </div>
+          <a href="{{ url_for('report', year=m.year, month=m.month) }}" class="btn btn-ghost" style="padding: 6px 12px; font-size:12px;">Report</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endblock %}

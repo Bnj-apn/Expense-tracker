@@ -65,7 +65,7 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <div class="card" style="padding: 20px;">
         <div class="card-title">Total Items</div>
-        <div style="font-family: var(--font-display); font-size: 28px; color: var(--accent);">{{ items|length }}</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; color: var(--accent);">{{ items|length }}</div>
       </div>
       <div class="card" style="padding: 20px; border-left: 3px solid var(--accent);">
         <div class="card-title">Total Cost</div>
@@ -76,7 +76,7 @@
     {% set type_meta = {
       'utility': {'color': '#4caf50', 'label': 'Utility'},
       'games':   {'color': '#9c7ee0', 'label': 'Games'},
-      'clothes': {'color': '#f0a050', 'label': 'Clothes'}
+      'clothes': {'color': '#38BDF8', 'label': 'Clothes'}
     } %}
 
     {% for t in wish_types %}
@@ -107,7 +107,7 @@
             {% set bought = item.purchased == "1" %}
             {% set priority_color = {
               'urgent':     '#EF4444',
-              'really want':'#F59E0B',
+              'really want':'#EAB308',
               'want':       '#5aabde',
               'eventually': '#6B7280'
             }[item.priority] %}
@@ -146,26 +146,14 @@
                   {{ item.priority }}
                 </span>
               </td>
-              <td class="note-cell">{{ item.note or '—' }}</td>
+              <td class="note-cell">{{ item.note or '-' }}</td>
               <td style="text-align:right">
                 <span class="amount" style="{{ 'text-decoration: line-through; color: var(--muted);' if bought }}">R${{ "%.2f"|format(item.price|float) }}</span>
               </td>
               <td style="text-align:right; padding-left: 0;">
                 <form action="{{ url_for('delete_wish_route', index=item.index) }}" method="POST"
                       onsubmit="return confirm('Remove this item from your wishlist?')">
-                  <button type="submit" title="Remove" style="
-                    background: none;
-                    border: 1px solid transparent;
-                    color: var(--muted);
-                    cursor: pointer;
-                    border-radius: 6px;
-                    padding: 4px 8px;
-                    font-size: 14px;
-                    transition: color 0.15s, border-color 0.15s;
-                  "
-                  onmouseover="this.style.color='#EF4444'; this.style.borderColor='rgba(239,68,68,0.3)'"
-                  onmouseout="this.style.color='var(--muted)'; this.style.borderColor='transparent'"
-                  >✕</button>
+                  <button type="submit" title="Remove" class="btn btn-danger">x</button>
                 </form>
               </td>
             </tr>

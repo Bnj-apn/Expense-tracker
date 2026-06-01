@@ -6,13 +6,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end; gap: 20px; flex-wrap: wrap;">
   <div>
     <h1>{{ month_name }}</h1>
     <p>{{ expense_count }} expense{{ 's' if expense_count != 1 }} recorded this month.</p>
   </div>
 
-  <!-- Month / year picker -->
   <form method="GET" action="{{ url_for('report') }}" style="display:flex; gap:10px; align-items:flex-end;">
     <div class="form-group" style="margin-bottom:0">
       <label for="month" style="margin-bottom:6px;">Month</label>
@@ -28,59 +27,37 @@
     </div>
     <div class="form-group" style="margin-bottom:0">
       <label for="year" style="margin-bottom:6px;">Year</label>
-      <input
-        type="number"
-        id="year"
-        name="year"
-        value="{{ year }}"
-        min="2020"
-        max="2099"
-        style="width:90px;"
-        onchange="this.form.submit()"
-      />
+      <input type="number" id="year" name="year" value="{{ year }}" min="2020" max="2099" style="width:90px;" onchange="this.form.submit()" />
     </div>
   </form>
 </div>
 
 {% if expense_count > 0 %}
-
-  <!-- Overview stat row -->
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px;">
-    <div class="card" style="padding: 20px;">
+  <div class="stat-grid">
+    <div class="card stat-card">
       <div class="card-title">Total Spent</div>
-      <div style="font-family: var(--font-display); font-size: 28px; color: var(--accent);">
-        R${{ "%.2f"|format(grand_total) }}
-      </div>
+      <div class="stat-value is-accent">R${{ "%.2f"|format(grand_total) }}</div>
     </div>
-    <div class="card" style="padding: 20px; border-left: 3px solid #e0e0e0;">
-      <div class="card-title" style="color: #e0e0e0;">Debit</div>
-      <div style="font-family: var(--font-mono); font-size: 22px; color: var(--text);">
-        R${{ "%.2f"|format(debit_total) }}
-      </div>
+    <div class="card stat-card is-neutral">
+      <div class="card-title">Debit</div>
+      <div class="stat-value">R${{ "%.2f"|format(debit_total) }}</div>
       {% if grand_total > 0 %}
-      <div style="font-size: 11px; color: var(--muted); margin-top:4px;">
-        {{ "%.0f"|format(debit_total / grand_total * 100) }}% of total
-      </div>
+      <div class="muted">{{ "%.0f"|format(debit_total / grand_total * 100) }}% of total</div>
       {% endif %}
     </div>
-    <div class="card" style="padding: 20px; border-left: 3px solid #d4aa30;">
-      <div class="card-title" style="color: #d4aa30;">Credit Card</div>
-      <div style="font-family: var(--font-mono); font-size: 22px; color: var(--text);">
-        R${{ "%.2f"|format(credit_total) }}
-      </div>
+    <div class="card stat-card is-credit">
+      <div class="card-title">Credit Card</div>
+      <div class="stat-value is-credit">R${{ "%.2f"|format(credit_total) }}</div>
       {% if grand_total > 0 %}
-      <div style="font-size: 11px; color: var(--muted); margin-top:4px;">
-        {{ "%.0f"|format(credit_total / grand_total * 100) }}% of total
-      </div>
+      <div class="muted">{{ "%.0f"|format(credit_total / grand_total * 100) }}% of total</div>
       {% endif %}
     </div>
   </div>
 
-  <!-- Monthly Recurring -->
-  <div class="card" style="margin-bottom: 28px; border-left: 3px solid #F59E0B;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-      <div class="card-title" style="color: #F59E0B; margin-bottom:0;">Monthly Recurring</div>
-      <span style="font-family: var(--font-mono); font-size: 16px; color: #F59E0B;">R${{ "%.2f"|format(recurring_total) }}</span>
+  <div class="card" style="margin-bottom: 24px; border-left: 3px solid var(--accent);">
+    <div class="section-header">
+      <div class="card-title" style="margin-bottom:0;">Monthly Recurring</div>
+      <span class="mono-value">R${{ "%.2f"|format(recurring_total) }}</span>
     </div>
     {% if recurring %}
       <table>
@@ -95,29 +72,12 @@
         <tbody>
           {% for r in recurring %}
           <tr>
-            <td>
-              <span class="badge" style="background: {{ category_colors.get(r.category, '#94A3B8') }}22; color: {{ category_colors.get(r.category, '#94A3B8') }};">
-                {{ r.category }}
-              </span>
-            </td>
-            <td class="note-cell">{{ r.note or '—' }}</td>
+            <td><span class="badge" style="color: {{ category_colors.get(r.category, '#94A3B8') }};">{{ r.category }}</span></td>
+            <td class="note-cell">{{ r.note or '-' }}</td>
             <td style="text-align:right"><span class="amount">R${{ "%.2f"|format(r.amount|float) }}</span></td>
             <td style="text-align:right; padding-left: 0;">
-              <form action="{{ url_for('delete_recurring_route', index=loop.index0) }}" method="POST"
-                    onsubmit="return confirm('Remove this recurring expense?')">
-                <button type="submit" title="Remove" style="
-                  background: none;
-                  border: 1px solid transparent;
-                  color: var(--muted);
-                  cursor: pointer;
-                  border-radius: 6px;
-                  padding: 4px 8px;
-                  font-size: 14px;
-                  transition: color 0.15s, border-color 0.15s;
-                "
-                onmouseover="this.style.color='#EF4444'; this.style.borderColor='rgba(239,68,68,0.3)'"
-                onmouseout="this.style.color='var(--muted)'; this.style.borderColor='transparent'"
-                >✕</button>
+              <form action="{{ url_for('delete_recurring_route', index=loop.index0) }}" method="POST" onsubmit="return confirm('Remove this recurring expense?')">
+                <button type="submit" title="Remove" class="btn btn-danger">x</button>
               </form>
             </td>
           </tr>
@@ -125,75 +85,54 @@
         </tbody>
       </table>
     {% else %}
-      <div style="color: var(--muted); font-size: 13px; padding: 8px 0;">No recurring expenses set up yet.</div>
+      <div class="muted">No recurring expenses set up yet.</div>
     {% endif %}
   </div>
 
-  <!-- Debit + Credit side by side -->
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-
-    <!-- Debit section -->
-    <div>
+    <div class="stack">
       {% if debit_totals %}
-        <!-- Category cards -->
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
-          {% for cat, amount in debit_totals %}
-          <div class="card" style="padding: 14px 18px; border-left: 3px solid {{ category_colors.get(cat, '#94A3B8') }}; display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <span class="badge" style="background: {{ category_colors.get(cat, '#94A3B8') }}22; color: {{ category_colors.get(cat, '#94A3B8') }};">{{ cat }}</span>
-              {% if debit_total > 0 %}
-              <span style="font-size:11px; color:var(--muted); margin-left:8px;">{{ "%.0f"|format(amount / debit_total * 100) }}%</span>
-              {% endif %}
-            </div>
-            <span style="font-family: var(--font-mono); font-size:15px; color: var(--text);">R${{ "%.2f"|format(amount) }}</span>
+        {% for cat, amount in debit_totals %}
+        <div class="card" style="padding: 14px 18px; border-left: 3px solid {{ category_colors.get(cat, '#94A3B8') }}; display:flex; justify-content:space-between; align-items:center; gap: 14px;">
+          <div>
+            <span class="badge" style="color: {{ category_colors.get(cat, '#94A3B8') }};">{{ cat }}</span>
+            {% if debit_total > 0 %}
+            <span class="muted" style="margin-left:8px;">{{ "%.0f"|format(amount / debit_total * 100) }}%</span>
+            {% endif %}
           </div>
-          {% endfor %}
+          <span class="mono-value">R${{ "%.2f"|format(amount) }}</span>
         </div>
-        <!-- Chart -->
+        {% endfor %}
         <div class="card" style="padding: 24px;">
-          <div class="card-title" style="color: #e0e0e0;">Debit by Category</div>
+          <div class="card-title">Debit by Category</div>
           <canvas id="debitChart"></canvas>
         </div>
       {% else %}
-        <div class="card">
-          <div class="empty-state" style="padding: 24px 0;">
-            <span style="color: var(--muted); font-size: 13px;">No debit expenses this month.</span>
-          </div>
-        </div>
+        <div class="card"><div class="empty-state">No debit expenses this month.</div></div>
       {% endif %}
     </div>
 
-    <!-- Credit section -->
-    <div>
+    <div class="stack">
       {% if credit_totals %}
-        <!-- Category cards -->
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
-          {% for cat, amount in credit_totals %}
-          <div class="card" style="padding: 14px 18px; border-left: 3px solid {{ category_colors.get(cat, '#94A3B8') }}; display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <span class="badge" style="background: {{ category_colors.get(cat, '#94A3B8') }}22; color: {{ category_colors.get(cat, '#94A3B8') }};">{{ cat }}</span>
-              {% if credit_total > 0 %}
-              <span style="font-size:11px; color:var(--muted); margin-left:8px;">{{ "%.0f"|format(amount / credit_total * 100) }}%</span>
-              {% endif %}
-            </div>
-            <span style="font-family: var(--font-mono); font-size:15px; color: var(--text);">R${{ "%.2f"|format(amount) }}</span>
+        {% for cat, amount in credit_totals %}
+        <div class="card" style="padding: 14px 18px; border-left: 3px solid {{ category_colors.get(cat, '#94A3B8') }}; display:flex; justify-content:space-between; align-items:center; gap: 14px;">
+          <div>
+            <span class="badge" style="color: {{ category_colors.get(cat, '#94A3B8') }};">{{ cat }}</span>
+            {% if credit_total > 0 %}
+            <span class="muted" style="margin-left:8px;">{{ "%.0f"|format(amount / credit_total * 100) }}%</span>
+            {% endif %}
           </div>
-          {% endfor %}
+          <span class="mono-value">R${{ "%.2f"|format(amount) }}</span>
         </div>
-        <!-- Chart -->
+        {% endfor %}
         <div class="card" style="padding: 24px;">
-          <div class="card-title" style="color: #d4aa30;">Credit Card by Category</div>
+          <div class="card-title">Credit Card by Category</div>
           <canvas id="creditChart"></canvas>
         </div>
       {% else %}
-        <div class="card">
-          <div class="empty-state" style="padding: 24px 0;">
-            <span style="color: var(--muted); font-size: 13px;">No credit expenses this month.</span>
-          </div>
-        </div>
+        <div class="card"><div class="empty-state">No credit expenses this month.</div></div>
       {% endif %}
     </div>
-
   </div>
 
   <script>
@@ -204,8 +143,8 @@
         tooltip: { callbacks: { label: ctx => ` R$${ctx.parsed.y.toFixed(2)}` } }
       },
       scales: {
-        x: { ticks: { color: '#6B7280', font: { family: 'DM Mono', size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#6B7280', font: { family: 'DM Mono', size: 11 }, callback: v => `R$${v}` }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+        x: { ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: '#1E2028' } },
+        y: { ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 }, callback: v => `R$${v}` }, grid: { color: '#1E2028' }, beginAtZero: true }
       }
     };
 
@@ -216,10 +155,10 @@
         labels: {{ debit_labels | tojson }},
         datasets: [{
           data: {{ debit_values | tojson }},
-          backgroundColor: {{ debit_colors | tojson }}.map(c => c + '99'),
+          backgroundColor: {{ debit_colors | tojson }}.map(c => c + '80'),
           borderColor: {{ debit_colors | tojson }},
-          borderWidth: 2,
-          borderRadius: 6,
+          borderWidth: 1,
+          borderRadius: 0,
         }]
       },
       options: chartDefaults
@@ -233,26 +172,21 @@
         labels: {{ credit_labels | tojson }},
         datasets: [{
           data: {{ credit_values | tojson }},
-          backgroundColor: {{ credit_colors | tojson }}.map(c => c + '99'),
+          backgroundColor: {{ credit_colors | tojson }}.map(c => c + '80'),
           borderColor: {{ credit_colors | tojson }},
-          borderWidth: 2,
-          borderRadius: 6,
+          borderWidth: 1,
+          borderRadius: 0,
         }]
       },
       options: chartDefaults
     });
     {% endif %}
   </script>
-
 {% else %}
-
   <div class="card">
     <div class="empty-state">
-      <span class="emoji">📊</span>
       No expenses found for {{ month_name }}.
-      Try a different month, or log some expenses first.
     </div>
   </div>
-
 {% endif %}
 {% endblock %}

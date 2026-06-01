@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header">
   <h1>Expense History</h1>
-  <p>All recorded expenses, newest first. Click ✕ to remove one.</p>
+  <p>All recorded expenses, newest first.</p>
 </div>
 
 <div class="card">
@@ -33,43 +33,25 @@
             {{ e.date }}
           </td>
           <td>
-            <span class="badge" style="background: {{ category_colors.get(e.category, '#94A3B8') }}22; color: {{ category_colors.get(e.category, '#94A3B8') }};">
+            <span class="badge" style="color: {{ category_colors.get(e.category, '#94A3B8') }};">
               {{ e.category }}
             </span>
           </td>
           <td>
-            <span class="badge" style="
-              {% if e.origin == 'credit' %}
-                background: rgba(212,170,48,0.12); color: #d4aa30;
-              {% else %}
-                background: rgba(224,224,224,0.08); color: #e0e0e0;
-              {% endif %}
-            ">
+            <span class="badge" style="color: {{ 'var(--credit)' if e.origin == 'credit' else 'var(--text)' }};">
               {{ "Credit Card" if e.origin == "credit" else "Debit" }}
             </span>
           </td>
-          <td class="note-cell">{{ e.note or '—' }}</td>
+          <td class="note-cell">{{ e.note or '-' }}</td>
           <td style="text-align:right">
-            <span class="amount" style="{{ 'color: #d4aa30;' if e.origin == 'credit' else '' }}">
+            <span class="amount" style="{{ 'color: var(--credit);' if e.origin == 'credit' else '' }}">
               R${{ "%.2f"|format(e.amount|float) }}
             </span>
           </td>
           <td style="text-align:right; padding-left: 0;">
             <form action="{{ url_for('delete', index=e.csv_index) }}" method="POST"
                   onsubmit="return confirm('Delete this expense?')">
-              <button type="submit" title="Delete" style="
-                background: none;
-                border: 1px solid transparent;
-                color: var(--muted);
-                cursor: pointer;
-                border-radius: 6px;
-                padding: 4px 8px;
-                font-size: 14px;
-                transition: color 0.15s, border-color 0.15s;
-              "
-              onmouseover="this.style.color='#EF4444'; this.style.borderColor='rgba(239,68,68,0.3)'"
-              onmouseout="this.style.color='var(--muted)'; this.style.borderColor='transparent'"
-              >✕</button>
+              <button type="submit" title="Delete" class="btn btn-danger">x</button>
             </form>
           </td>
         </tr>
@@ -78,8 +60,7 @@
     </table>
   {% else %}
     <div class="empty-state">
-      <span class="emoji">🧾</span>
-      No expenses logged yet. Head to the Dashboard to add some.
+      No expenses logged yet.
     </div>
   {% endif %}
 </div>

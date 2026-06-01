@@ -14,6 +14,7 @@ from tracker import (
     add_expense,
     delete_expense,
     load_expenses,
+    get_carry_forward_balance,
     get_monthly_expenses,
     get_monthly_income,
     set_monthly_income,
@@ -38,13 +39,37 @@ app.secret_key = "cream-expense-tracker-secret"
 
 # One color per category — used in charts and category badges.
 CATEGORY_COLORS = {
-    "food":          "#4caf50",
-    "grocery":       "#9c7ee0",
-    "transport":     "#f0a050",
-    "subscriptions": "#5aabde",
-    "extras":        "#e07a50",
-    "bet":           "#d4be45",
+    "food":          "#22C55E",
+    "grocery":       "#A855F7",
+    "transport":     "#38BDF8",
+    "subscriptions": "#14B8A6",
+    "extras":        "#F43F5E",
+    "bet":           "#EAB308",
 }
+
+
+def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
+    """Move a year/month pair by offset months."""
+    month_index = (year * 12) + (month - 1) + offset
+    return month_index // 12, (month_index % 12) + 1
+
+
+def _month_snapshot(year: int, month: int) -> dict:
+    expenses = get_monthly_expenses(year, month)
+    debit_total = sum(
+        float(e["amount"])
+        for e in expenses
+        if e.get("origin", "debit") != "credit"
+    )
+    total_spent = sum(float(e["amount"]) for e in expenses)
+    income = get_monthly_income(year, month)
+    return {
+        "year": year,
+        "month": month,
+        "label": date(year, month, 1).strftime("%B %Y"),
+        "total_spent": total_spent,
+        "balance": round(income - debit_total, 2),
+    }
 
 
 @app.route("/")
@@ -63,7 +88,15 @@ def dashboard():
     spent_credit = sum(float(e["amount"]) for e in credit_expenses)
 
     income = get_monthly_income(today.year, today.month)
+    if income == 0:
+        income = get_carry_forward_balance(today.year, today.month)
+        set_monthly_income(today.year, today.month, income)
     remaining = income - spent_debit
+
+    past_months = [
+        _month_snapshot(*_shift_month(today.year, today.month, -offset))
+        for offset in range(1, 6)
+    ]
 
     recurring = load_recurring()
     recurring_debit_total  = sum(float(r["amount"]) for r in recurring if r.get("origin", "debit") == "debit")
@@ -86,6 +119,7 @@ def dashboard():
         recurring=recurring,
         recurring_debit_total=recurring_debit_total,
         recurring_credit_total=recurring_credit_total,
+        past_months=past_months,
     )
 
 

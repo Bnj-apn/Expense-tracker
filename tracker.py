@@ -149,9 +149,6 @@ def set_monthly_income(year: int, month: int, amount: float) -> None:
     If an entry for that year/month already exists, it gets replaced.
     This means you can correct your income if you typed it wrong.
     """
-    if amount < 0:
-        raise ValueError("Income cannot be negative.")
-
     # Load existing entries, remove any for this month, add the new one.
     entries = _load_income()
     entries = [e for e in entries if not (int(e["year"]) == year and int(e["month"]) == month)]
@@ -169,6 +166,22 @@ def get_monthly_income(year: int, month: int) -> float:
         if int(entry["year"]) == year and int(entry["month"]) == month:
             return float(entry["amount"])
     return 0.0
+
+
+def get_carry_forward_balance(year: int, month: int) -> float:
+    """Return the leftover debit balance from the previous month."""
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+
+    prev_income = get_monthly_income(prev_year, prev_month)
+    prev_expenses = sum(
+        float(e["amount"])
+        for e in get_monthly_expenses(prev_year, prev_month)
+        if e.get("origin", "debit") != "credit"
+    )
+    return round(prev_income - prev_expenses, 2)
 
 
 def _load_income() -> list[dict]:
